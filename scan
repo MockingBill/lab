@@ -1,0 +1,149 @@
+import java.io.*;
+
+import java.net.*;
+
+	public class scan { 
+	    public static void main(String args[]) 
+	    { 
+	        int Thread_Num=50;                       //设置默认线程数50 
+	        String host="172.18.64.18"; 
+	        int minPort; 
+	        int maxPort; 
+	        int portNum; 
+	        ScanPort sp[]=new ScanPort[Thread_Num]; 
+	        minPort=Integer.parseInt("0"); 
+	        maxPort=Integer.parseInt("65535"); 
+	        if(args.length == 3 && minPort<maxPort) 
+	        { 
+	            host=args[0]; 
+	            minPort=Integer.parseInt("0"); 
+	            maxPort=Integer.parseInt("65535"); 
+	            InetAddress thisComputer; 
+	            byte[] address; 
+	            //获取IP地址的字节 
+	            try 
+	            { 
+	                thisComputer=InetAddress.getByName(host); 
+	                address=thisComputer.getAddress(); 
+	            } 
+	            catch(UnknownHostException e) 
+	            { 
+	                System.out.println("Cannot find host"+host); 
+	            } 
+	        } 
+	        if (args.length == 4 && minPort<maxPort) 
+	        { 
+	            host=args[0]; 
+	            minPort=Integer.parseInt(args[1]); 
+	            maxPort=Integer.parseInt(args[2]); 
+	            Thread_Num=Integer.parseInt(args[3]);    //自定义线程数 
+	            InetAddress thisComputer; 
+	            byte[] address; 
+	            //获取IP地址的字节 
+	            try 
+	            { 
+	                thisComputer=InetAddress.getByName(host); 
+	                address=thisComputer.getAddress(); 
+	            } 
+	            catch(UnknownHostException e) 
+	            { 
+	                System.out.println("Cannot find host"+host); 
+	            } 
+	         } 
+	        //--- 计算待扫瞄端口量 ---// 
+	        portNum=maxPort-minPort+1; 
+	        if(portNum < Thread_Num) 
+	        { 
+	           //--- 如果端口数小于总线程 ---// 
+	           for(int i=0; i<portNum; i++) 
+	           { 
+	               sp[i]=new ScanPort(host,minPort+i,minPort+i,i); 
+	               sp[i].start(); 
+	           } 
+	        } 
+	        else 
+	        { 
+	            int startPort = minPort, endPort = minPort; 
+	            int A = portNum / Thread_Num ; 
+	            int B = portNum % Thread_Num; 
+	            for(int i=0; i<Thread_Num; i++) 
+	            { 
+	                if(B <= Thread_Num) 
+	                { 
+	                    startPort = endPort; 
+	                    if ( i!= 0) 
+	                    { 
+	                        startPort += 1; 
+	                        endPort = startPort + A -1; 
+	                    } 
+	                    if ( i < B) 
+	                        endPort += 1; 
+	                    sp[i]=new ScanPort(host,startPort,endPort,i); 
+	                    sp[i].start(); 
+	                 } 
+	                else 
+	                { 
+	                    System.out.println("b大于50"); 
+	                } 
+	            } 
+	        } 
+	       try 
+	       { 
+	           loop: 
+	           while(true) 
+	           { 
+	               for(int i=0; i<Thread_Num; i++) 
+	                   if(sp[i].isAlive()) 
+	                       continue loop; 
+	               break; 
+	           } 
+	       } 
+	       catch(NullPointerException e) 
+	       { 
+	           System.out.println(e.toString()); 
+	       } 
+	      System.out.println("扫描结束"); 
+	      System.out.println("生成report.txt文件"); 
+	} 
+	} 
+	class ScanPort extends Thread 
+	{ 
+	//--- 分别定义目标,开始端口,结束端口,线程标记 ---// 
+	     private String host; 
+	     private int sPort; 
+	     private int ePort; 
+	     private int tag; 
+	     private int i; 
+	     //--- 构造函数(重新构造端口) ---// 
+	     ScanPort(String h, int sP, int eP, int t) 
+	     { 
+	         super(); 
+	         host=h; 
+	         sPort=sP; 
+	         ePort=eP; 
+	         tag=t; 
+	      } 
+	      public void run() 
+	      { 
+	            //--- 测试端口是否打开 ---// 
+	            for(i=sPort; i<=ePort; i++) 
+	            { 
+	                try 
+	                { 
+	                    Socket s = new Socket(host, i); 
+	                    System.out.println("Host:"+host+" Port: "+i+" is Opening."+tag+"线程"); 
+	                    FileOutputStream out1=new FileOutputStream("C:\report.txt",true); 
+	                    BufferedOutputStream out2=new BufferedOutputStream(out1); 
+	                    DataOutputStream out=new DataOutputStream(out2); 
+	                    out.writeChars("Host:"+host+" Port:"+i+" is Opening."+tag+" Threads"+"n"); 
+	                    out.close(); 
+	                    Thread.yield(); 
+	                 } 
+	                 catch(IOException e) 
+	                 { 
+	                    System.out.println("Host:"+host+" Port: "+i+" is Closed."+tag+"线程"); 
+	                 } 
+	             } 
+	       } 
+	} 
+
